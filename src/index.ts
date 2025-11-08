@@ -2,6 +2,7 @@ import http from 'node:http';
 import 'dotenv/config'
 import { generateId, validateId } from './utils/uuid';
 import { sendJson } from './utils/sendJson';
+import { parseURL } from './utils/parseURL';
 
 
 const hostname = '127.0.0.1';
@@ -16,89 +17,138 @@ const users = [
     },
     {
         id: generateId(),
-        name: "Nadya",
+        username: "Nadya",
         age: 26,
         hobbies: [],
     }
 ]
 
 const server = http.createServer((req, res) => {
+    try {
+        const { method } = req;
+        const { pathname: url } = parseURL(req.url ?? '')
 
-    const { method, url } = req;
+        if (method === "GET") {
 
-    if (method === "GET") {
-
-        if (url === "/users") {
-            sendJson(res, 200, users)
-            return;
-        }
-
-        if (url?.startsWith("/users/")) { // TODO: need to handle somehow this url check
-            const userId = url.split("/").at(-1)
-            if (!userId || !validateId(userId)) {
-                sendJson(res, 400, { message: 'userId is not valid' }) // TODO: maybe move errors/error messages to separate files and think about general error structure
-                return;
-            }
-            const user = users.find(user => user.id === userId)
-
-            if (!user) {
-                sendJson(res, 404, { message: "user is not found" })
+            if (url === "/users") {
+                sendJson(res, 200, users)
                 return;
             }
 
-            sendJson(res, 200, user)
-        }
-    }
-
-    if (method === "POST") {
-
-        if (url === "/users") {
-            // TODO: wrap in try/catch block maybe
-            const body = [] as Uint8Array[];
-            req.on("data", (chunk) => {
-                body.push(chunk)
-            })
-
-            req.on("end", () => {
-                const user = JSON.parse(Buffer.concat(body).toString())
-                if (!user || !user.username || !user.age || !user.hobbies) {
-                    sendJson(res, 400, { message: "user should have all requered filed (name, age and hobbies)" }) // TODO: handle also types of this parameters
+            else if (url?.startsWith("/users/")) { // TODO: need to handle somehow this url check
+                const userId = url.split("/").at(2)
+                if (!userId || !validateId(userId)) {
+                    sendJson(res, 400, { message: 'userId is not valid' }) // TODO: maybe move errors/error messages to separate files and think about general error structure
                     return;
                 }
-                users.push({ id: generateId(), ...user })
-                sendJson(res, 201, user)
-                return;
-            })
+                const user = users.find(user => user.id === userId)
 
-        }
-    }
-    if (method === "PUT") {
+                if (!user) {
+                    sendJson(res, 404, { message: "user is not found" })
+                    return;
+                }
 
-    }
-    if (method === "DELETE") {
-        if (url?.startsWith("/users/")) {
-            const userId = url.split("/").at(-1)
-            if (!userId || !validateId(userId)) {
-                sendJson(res, 400, { message: 'userId is not valid' }) // TODO: duplication
-                return;
+                sendJson(res, 200, user)
             }
-            const user = users.find(user => user.id === userId)
-
-            if (!user) {
-                sendJson(res, 404, { message: "user is not found" })
-                return;
+            else {
+                sendJson(res, 404, { message: "Not found" })
             }
-
-            const userIndex = users.findIndex(user => user.id === userId)
-
-            users.splice(userIndex, 1)
-            sendJson(res, 204)
-            return;
-
         }
+
+        else if (method === "POST") {
+
+            if (url === "/users") {
+                // TODO: wrap in try/catch block maybe
+                const body = [] as Uint8Array[];
+                req.on("data", (chunk) => {
+                    body.push(chunk)
+                })
+
+                req.on("end", () => {
+                    const user = JSON.parse(Buffer.concat(body).toString())
+                    if (!user || !user.username || !user.age || !user.hobbies) {
+                        sendJson(res, 400, { message: "user should have all requered filed (name, age and hobbies)" }) // TODO: handle also types of this parameters
+                        return;
+                    }
+                    users.push({ id: generateId(), ...user })
+                    sendJson(res, 201, user)
+                    return;
+                })
+
+            } else {
+                sendJson(res, 404, { message: "Not found" })
+            }
+        }
+
+        else if (method === "PUT") {
+            if (url?.startsWith("/users/")) {
+
+                const userId = url.split("/").at(2)
+                if (!userId || !validateId(userId)) {
+                    sendJson(res, 400, { message: 'userId is not valid' }) // TODO: duplication
+                    return;
+                }
+
+                const initialUser = users.find(user => user.id === userId)
+
+                if (!initialUser) {
+                    sendJson(res, 404, { message: "user is not found" })
+                    return;
+                }
+
+                const body = [] as Uint8Array[];
+                req.on("data", (chunk) => {
+                    body.push(chunk)
+                })
+
+                req.on("end", () => {
+                    const user = JSON.parse(Buffer.concat(body).toString())
+                    if (!user || !user.username || !user.age || !user.hobbies) {
+                        sendJson(res, 400, { message: "user should have all requered filed (name, age and hobbies)" }) // TODO: handle also types of this parameters
+                        return;
+                    }
+                    users.splice(users.findIndex((u => u.id === initialUser.id)), 1, ({ id: generateId(), ...user }))
+                    sendJson(res, 200, user)
+                    return;
+                })
+
+            }
+        }
+
+        else if (method === "DELETE") {
+            if (url?.startsWith("/users/")) {
+                const userId = url.split("/").at(2)
+                if (!userId || !validateId(userId)) {
+                    sendJson(res, 400, { message: 'userId is not valid' }) // TODO: duplication
+                    return;
+                }
+                const initialUser = users.find(user => user.id === userId)
+
+                if (!initialUser) {
+                    sendJson(res, 404, { message: "user is not found" })
+                    return;
+                }
+
+                const userIndex = users.findIndex(user => user.id === userId)
+
+                users.splice(userIndex, 1)
+                sendJson(res, 204)
+                return;
+
+            } else {
+
+                sendJson(res, 404, { message: "Not found" })
+            }
+        }
+        else {
+            sendJson(res, 404, { message: "Not found" })
+        }
+
+    } catch (e) {
+        console.error(e)
+        sendJson(res, 500, { message: "Server error" })
     }
 })
-
 
 server.listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}/`);
