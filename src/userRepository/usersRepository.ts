@@ -32,20 +32,20 @@ export type User = {
 export type UserBody = Omit<User, 'id'>;
 
 export interface IUsersRepository {
-  getUsers(): User[];
-  getUserById(userId: string): User;
-  createUser(body: UserBody): User;
-  updateUser(userId: string, body: UserBody): User;
-  deleteUser(userId: string): void;
+  getUsers(): Promise<User[]>;
+  getUserById(userId: string): Promise<User>;
+  createUser(body: UserBody): Promise<User>;
+  updateUser(userId: string, body: UserBody): Promise<User>;
+  deleteUser(userId: string): Promise<void>;
 }
 
-class UsersRepository implements IUsersRepository {
+export class UsersRepository implements IUsersRepository {
   users: User[];
   constructor(users: User[]) {
     this.users = users;
   }
 
-  getUserById(userId: string) {
+  async getUserById(userId: string) {
     if (!validateId(userId)) {
       throw new UserIdValidationError();
     }
@@ -58,17 +58,17 @@ class UsersRepository implements IUsersRepository {
     return user;
   }
 
-  getUsers() {
+  async getUsers() {
     return this.users;
   }
 
-  deleteUser(userId: string) {
-    this.getUserById(userId);
+  async deleteUser(userId: string) {
+    await this.getUserById(userId);
     const userIndex = this.users.findIndex((user) => user.id === userId);
     this.users.splice(userIndex, 1);
   }
 
-  createUser(userBody: UserBody) {
+  async createUser(userBody: UserBody) {
     if (!isUsersBodyValid(userBody)) {
       throw new UserBodyValidationError();
     }
@@ -78,12 +78,11 @@ class UsersRepository implements IUsersRepository {
     return createdUser;
   }
 
-  updateUser(userId: string, userBody: UserBody) {
-    const user = this.getUserById(userId);
+  async updateUser(userId: string, userBody: UserBody) {
+    const user = await this.getUserById(userId);
     const userIndex = this.users.findIndex((user) => user.id === userId);
 
     if (!isUsersBodyValid(userBody)) {
-      console.log('Невалидно');
       throw new UserBodyValidationError();
     }
 

@@ -6,6 +6,8 @@ import {
   usersRepository,
 } from './userRepository/usersRepository';
 
+const PORT = Number(process.env.PORT) || 3000;
+
 export const app = (
   hostname: string,
   port: number,
@@ -14,4 +16,4 @@ export const app = (
   server(hostname, port, usersRepository);
 };
 
-app(HOST_NAME, Number(process.env.PORT), usersRepository);
+app(HOST_NAME, PORT, usersRepository);

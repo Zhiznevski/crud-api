@@ -8,3 +8,18 @@ export const ERROR_MAP = {
   pathIsNotFound: 'Path is not found',
   unexpectedServerError: 'Unexpected server error. Please try again',
 };
+
+export const ERROR_TYPES_MAP = {
+  UserIdValidationError: 'UserIdValidationError',
+  UserBodyValidationError: 'UserBodyValidationError',
+  UserNotFoundError: 'UserNotFoundError',
+  UnexpectedServerError: 'UnexpectedServerError',
+} as const;
+
+export const ACTION_MAP = {
+  getUsers: 'getUsers',
+  getUserById: 'getUserById',
+  createUser: 'createUser',
+  updateUser: 'updateUser',
+  deleteUser: 'deleteUser',
+} as const;

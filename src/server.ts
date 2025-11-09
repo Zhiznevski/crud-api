@@ -1,5 +1,4 @@
 import http from 'node:http';
-// import { generateId, validateId } from './utils/uuid';
 import { sendJson } from './utils/sendJson';
 import { parseURL } from './utils/parseURL';
 import { IUsersRepository } from './userRepository/usersRepository';
@@ -16,15 +15,16 @@ export const server = (
   port: number,
   usersRepository: IUsersRepository,
 ) => {
-  http
-    .createServer((req, res) => {
+  const httpServer = http.createServer((req, res) => {
+    const handleRequest = async () => {
       try {
         const { method } = req;
         const { pathname: url } = parseURL(req.url ?? '');
 
         if (method === 'GET') {
           if (url === '/users') {
-            sendJson(res, 200, usersRepository.getUsers());
+            const users = await usersRepository.getUsers();
+            sendJson(res, 200, users);
             return;
           } else if (url?.startsWith('/users/')) {
             const userId = getUserIdFromURL(url);
@@ -42,10 +42,10 @@ export const server = (
             req.on('data', (chunk) => {
               body.push(chunk);
             });
-            req.on('end', () => {
+            req.on('end', async () => {
               try {
                 const user = JSON.parse(Buffer.concat(body).toString());
-                const createdUser = usersRepository.createUser(user);
+                const createdUser = await usersRepository.createUser(user);
                 sendJson(res, 201, createdUser);
                 return;
               } catch (e) {
@@ -66,10 +66,13 @@ export const server = (
             req.on('data', (chunk) => {
               body.push(chunk);
             });
-            req.on('end', () => {
+            req.on('end', async () => {
               try {
                 const user = JSON.parse(Buffer.concat(body).toString());
-                const updatedUser = usersRepository.updateUser(userId, user);
+                const updatedUser = await usersRepository.updateUser(
+                  userId,
+                  user,
+                );
                 sendJson(res, 200, updatedUser);
                 return;
               } catch (e) {
@@ -98,10 +101,14 @@ export const server = (
       } catch (e) {
         errorHandler(e, res);
       }
-    })
-    .listen(port, hostname, () => {
-      console.log(`Server running at http://${hostname}:${port}/`);
-    });
+    };
+
+    handleRequest();
+  });
+
+  httpServer.listen(port, hostname, () => {
+    console.log(`Server running at http://${hostname}:${port}/`);
+  });
 };
 
 const getUserIdFromURL = (url: string) => url.split('/').at(2);
