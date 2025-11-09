@@ -8,14 +8,16 @@ import { users } from './users';
 
 const isUsersBodyValid = (body: UserBody) => {
   if (!body) return false;
-  if (typeof body.username !== 'string' || body.username.trim() === '')
+  if (typeof body.username !== 'string' || body.username.trim() === '') {
     return false;
+  }
   if (
     typeof body.age !== 'number' ||
     !Number.isInteger(body.age) ||
     body.age < 0
-  )
+  ) {
     return false;
+  }
   if (!Array.isArray(body.hobbies)) return false;
   return true;
 };
@@ -27,9 +29,17 @@ export type User = {
   hobbies: string[];
 };
 
-type UserBody = Omit<User, 'id'>;
+export type UserBody = Omit<User, 'id'>;
 
-class UsersRepository {
+export interface IUsersRepository {
+  getUsers(): User[];
+  getUserById(userId: string): User;
+  createUser(body: UserBody): User;
+  updateUser(userId: string, body: UserBody): User;
+  deleteUser(userId: string): void;
+}
+
+class UsersRepository implements IUsersRepository {
   users: User[];
   constructor(users: User[]) {
     this.users = users;
@@ -73,6 +83,7 @@ class UsersRepository {
     const userIndex = this.users.findIndex((user) => user.id === userId);
 
     if (!isUsersBodyValid(userBody)) {
+      console.log('Невалидно');
       throw new UserBodyValidationError();
     }
 

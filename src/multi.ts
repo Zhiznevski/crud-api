@@ -5,7 +5,7 @@ import process from 'node:process';
 
 import { HOST_NAME } from './consts/consts';
 import { server } from './server';
-import { users } from './userRepository/users';
+import { usersRepository } from './userRepository/usersRepository';
 
 const numCPUs = availableParallelism() - 1;
 
@@ -23,6 +23,6 @@ if (cluster.isPrimary) {
     console.log(`worker ${worker.process.pid} died`);
   });
 } else {
-  server(HOST_NAME, Number(process.env.PORT), users);
+  server(HOST_NAME, Number(process.env.PORT), usersRepository);
   console.log(`Worker ${process.pid} started`);
 }

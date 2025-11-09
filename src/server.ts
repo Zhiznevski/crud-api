@@ -1,10 +1,21 @@
 import http from 'node:http';
-import { generateId, validateId } from './utils/uuid';
+// import { generateId, validateId } from './utils/uuid';
 import { sendJson } from './utils/sendJson';
 import { parseURL } from './utils/parseURL';
-import { User } from './userRepository/users';
+import { IUsersRepository } from './userRepository/usersRepository';
+import {
+  RouteNotFoundError,
+  UserBodyValidationError,
+  UserIdValidationError,
+  UserNotFoundError,
+} from './utils/errors';
+import { ERROR_MAP } from './consts/consts';
 
-export const server = (hostname: string, port: number, users: User[]) => {
+export const server = (
+  hostname: string,
+  port: number,
+  usersRepository: IUsersRepository,
+) => {
   http
     .createServer((req, res) => {
       try {
@@ -13,120 +24,100 @@ export const server = (hostname: string, port: number, users: User[]) => {
 
         if (method === 'GET') {
           if (url === '/users') {
-            sendJson(res, 200, users);
-
+            sendJson(res, 200, usersRepository.getUsers());
             return;
           } else if (url?.startsWith('/users/')) {
-            // TODO: need to handle somehow this url check
-            const userId = url.split('/').at(2);
-            if (!userId || !validateId(userId)) {
-              sendJson(res, 400, { message: 'userId is not valid' }); // TODO: maybe move errors/error messages to separate files and think about general error structure
-              return;
+            const userId = getUserIdFromURL(url);
+            if (!userId) {
+              throw new UserIdValidationError();
             }
-            const user = users.find((user) => user.id === userId);
-
-            if (!user) {
-              sendJson(res, 404, { message: 'user is not found' });
-              return;
-            }
-
-            sendJson(res, 200, user);
+            sendJson(res, 200, usersRepository.getUserById(userId));
+            return;
           } else {
-            sendJson(res, 404, { message: 'Not found' });
+            throw new RouteNotFoundError();
           }
         } else if (method === 'POST') {
           if (url === '/users') {
-            // TODO: wrap in try/catch block maybe
             const body = [] as Uint8Array[];
             req.on('data', (chunk) => {
               body.push(chunk);
             });
-
             req.on('end', () => {
-              const user = JSON.parse(Buffer.concat(body).toString());
-              if (!user || !user.username || !user.age || !user.hobbies) {
-                sendJson(res, 400, {
-                  message:
-                    'user should have all requered fields (name, age and hobbies)',
-                }); // TODO: handle also types of this parameters
+              try {
+                const user = JSON.parse(Buffer.concat(body).toString());
+                const createdUser = usersRepository.createUser(user);
+                sendJson(res, 201, createdUser);
                 return;
+              } catch (e) {
+                errorHandler(e, res);
               }
-              users.push({ id: generateId(), ...user });
-              sendJson(res, 201, user);
-              return;
             });
+            return;
           } else {
-            sendJson(res, 404, { message: 'Not found' });
+            throw new RouteNotFoundError();
           }
         } else if (method === 'PUT') {
           if (url?.startsWith('/users/')) {
-            const userId = url.split('/').at(2);
-            if (!userId || !validateId(userId)) {
-              sendJson(res, 400, { message: 'userId is not valid' }); // TODO: duplication
-              return;
+            const userId = getUserIdFromURL(url);
+            if (!userId) {
+              throw new UserIdValidationError();
             }
-
-            const initialUser = users.find((user) => user.id === userId);
-
-            if (!initialUser) {
-              sendJson(res, 404, { message: 'user is not found' });
-              return;
-            }
-
             const body = [] as Uint8Array[];
             req.on('data', (chunk) => {
               body.push(chunk);
             });
-
             req.on('end', () => {
-              const user = JSON.parse(Buffer.concat(body).toString());
-              if (!user || !user.username || !user.age || !user.hobbies) {
-                sendJson(res, 400, {
-                  message:
-                    'user should have all requered fields (name, age and hobbies)',
-                }); // TODO: handle also types of this parameters
+              try {
+                const user = JSON.parse(Buffer.concat(body).toString());
+                const updatedUser = usersRepository.updateUser(userId, user);
+                sendJson(res, 200, updatedUser);
                 return;
+              } catch (e) {
+                errorHandler(e, res);
               }
-              users.splice(
-                users.findIndex((u) => u.id === initialUser.id),
-                1,
-                { id: generateId(), ...user },
-              );
-              sendJson(res, 200, user);
-              return;
             });
+            return;
+          } else {
+            throw new RouteNotFoundError();
           }
         } else if (method === 'DELETE') {
           if (url?.startsWith('/users/')) {
-            const userId = url.split('/').at(2);
-            if (!userId || !validateId(userId)) {
-              sendJson(res, 400, { message: 'userId is not valid' }); // TODO: duplication
-              return;
+            const userId = getUserIdFromURL(url);
+            if (!userId) {
+              throw new UserIdValidationError();
             }
-            const initialUser = users.find((user) => user.id === userId);
-
-            if (!initialUser) {
-              sendJson(res, 404, { message: 'user is not found' });
-              return;
-            }
-
-            const userIndex = users.findIndex((user) => user.id === userId);
-
-            users.splice(userIndex, 1);
+            usersRepository.deleteUser(userId);
             sendJson(res, 204);
             return;
           } else {
-            sendJson(res, 404, { message: 'Not found' });
+            throw new RouteNotFoundError();
           }
         } else {
-          sendJson(res, 404, { message: 'Not found' });
+          throw new RouteNotFoundError();
         }
       } catch (e) {
-        console.error(e);
-        sendJson(res, 500, { message: 'Server error' });
+        errorHandler(e, res);
       }
     })
     .listen(port, hostname, () => {
       console.log(`Server running at http://${hostname}:${port}/`);
     });
+};
+
+const getUserIdFromURL = (url: string) => url.split('/').at(2);
+
+const errorHandler = (e: unknown, response: http.ServerResponse) => {
+  if (
+    e instanceof UserIdValidationError ||
+    e instanceof UserBodyValidationError
+  ) {
+    sendJson(response, 400, { message: e.message });
+    return;
+  }
+  if (e instanceof UserNotFoundError || e instanceof RouteNotFoundError) {
+    sendJson(response, 404, { message: e.message });
+    return;
+  }
+
+  sendJson(response, 500, { message: ERROR_MAP.unexpectedServerError });
 };
