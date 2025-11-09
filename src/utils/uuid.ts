@@ -3,10 +3,9 @@ import { version as uuidVersion } from 'uuid';
 import { validate as uuidValidate } from 'uuid';
 
 export function generateId() {
-    return uuidv4();
+  return uuidv4();
 }
 
 export function validateId(uuid: string) {
-    return uuidValidate(uuid) && uuidVersion(uuid) === 4;
+  return uuidValidate(uuid) && uuidVersion(uuid) === 4;
 }
-

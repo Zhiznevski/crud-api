@@ -7,7 +7,7 @@ import { HOST_NAME } from './consts/consts';
 import { server } from './server';
 import { users } from './db/users';
 
-const numCPUs = availableParallelism();
+const numCPUs = availableParallelism() - 1;
 
 if (cluster.isPrimary) {
   console.log(`Primary ${process.pid} is running`);
@@ -15,7 +15,7 @@ if (cluster.isPrimary) {
   for (let i = 0; i < numCPUs; i++) {
     cluster.fork({
       ...process.env,
-      PORT: Number(process.env.PORT) + i,
+      PORT: String(Number(process.env.PORT) + i),
     });
   }
 
