@@ -17,6 +17,7 @@ import {
   ERROR_MAP,
   ERROR_TYPES_MAP,
   HOST_NAME,
+  STATUS_CODES,
 } from './consts/consts';
 import { server } from './server';
 import {
@@ -70,7 +71,10 @@ if (cluster.isPrimary) {
         headers: req.headers,
       },
       (proxyRes) => {
-        res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
+        res.writeHead(
+          proxyRes.statusCode || STATUS_CODES.SERVER_ERROR,
+          proxyRes.headers,
+        );
         proxyRes.pipe(res);
       },
     );

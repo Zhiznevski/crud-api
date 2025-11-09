@@ -41,13 +41,13 @@ let nextId = 1;
 const mapError = (res: IpcResponseError): Error => {
   const { errorType, message } = res;
 
-  if (errorType === 'UserIdValidationError') {
+  if (errorType === ERROR_TYPES_MAP.UserIdValidationError) {
     return new UserIdValidationError(message);
   }
-  if (errorType === 'UserBodyValidationError') {
+  if (errorType === ERROR_TYPES_MAP.UserBodyValidationError) {
     return new UserBodyValidationError(message);
   }
-  if (errorType === 'UserNotFoundError') {
+  if (errorType === ERROR_TYPES_MAP.UserNotFoundError) {
     return new UserNotFoundError(message);
   }
   return new Error(message || ERROR_MAP.unexpectedServerError);

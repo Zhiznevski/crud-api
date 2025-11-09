@@ -8,7 +8,7 @@ import {
   UserIdValidationError,
   UserNotFoundError,
 } from './utils/errors';
-import { ERROR_MAP } from './consts/consts';
+import { ERROR_MAP, ROUTES, STATUS_CODES } from './consts/consts';
 
 export const server = (
   hostname: string,
@@ -21,84 +21,76 @@ export const server = (
         const { method } = req;
         const { pathname: url } = parseURL(req.url ?? '');
 
-        if (method === 'GET') {
-          if (url === '/users') {
-            const users = await usersRepository.getUsers();
-            sendJson(res, 200, users);
-            return;
-          } else if (url?.startsWith('/users/')) {
-            const userId = getUserIdFromURL(url);
-            if (!userId) {
-              throw new UserIdValidationError();
-            }
-            const user = await usersRepository.getUserById(userId);
-            sendJson(res, 200, user);
-            return;
-          } else {
-            throw new RouteNotFoundError();
-          }
-        } else if (method === 'POST') {
-          if (url === '/users') {
-            const body = [] as Uint8Array[];
-            req.on('data', (chunk) => {
-              body.push(chunk);
-            });
-            req.on('end', async () => {
-              try {
-                const user = JSON.parse(Buffer.concat(body).toString());
-                const createdUser = await usersRepository.createUser(user);
-                sendJson(res, 201, createdUser);
-                return;
-              } catch (e) {
-                errorHandler(e, res);
-              }
-            });
-            return;
-          } else {
-            throw new RouteNotFoundError();
-          }
-        } else if (method === 'PUT') {
-          if (url?.startsWith('/users/')) {
-            const userId = getUserIdFromURL(url);
-            if (!userId) {
-              throw new UserIdValidationError();
-            }
-            const body = [] as Uint8Array[];
-            req.on('data', (chunk) => {
-              body.push(chunk);
-            });
-            req.on('end', async () => {
-              try {
-                const user = JSON.parse(Buffer.concat(body).toString());
-                const updatedUser = await usersRepository.updateUser(
-                  userId,
-                  user,
-                );
-                sendJson(res, 200, updatedUser);
-                return;
-              } catch (e) {
-                errorHandler(e, res);
-              }
-            });
-            return;
-          } else {
-            throw new RouteNotFoundError();
-          }
-        } else if (method === 'DELETE') {
-          if (url?.startsWith('/users/')) {
-            const userId = getUserIdFromURL(url);
-            if (!userId) {
-              throw new UserIdValidationError();
-            }
-            await usersRepository.deleteUser(userId);
-            sendJson(res, 204);
-            return;
-          } else {
-            throw new RouteNotFoundError();
-          }
-        } else {
-          throw new RouteNotFoundError();
+        if (method === 'GET' && url === ROUTES.users) {
+          const users = await usersRepository.getUsers();
+          sendJson(res, STATUS_CODES.OK, users);
+          return;
         }
+
+        if (method === 'GET' && url?.startsWith(ROUTES.users + '/')) {
+          const userId = getUserIdFromURL(url);
+          if (!userId) {
+            throw new UserIdValidationError();
+          }
+          const user = await usersRepository.getUserById(userId);
+          sendJson(res, STATUS_CODES.OK, user);
+          return;
+        }
+
+        if (method === 'POST' && url === ROUTES.users) {
+          const body = [] as Uint8Array[];
+          req.on('data', (chunk) => {
+            body.push(chunk);
+          });
+          req.on('end', async () => {
+            try {
+              const user = JSON.parse(Buffer.concat(body).toString());
+              const createdUser = await usersRepository.createUser(user);
+              sendJson(res, STATUS_CODES.CREATED, createdUser);
+              return;
+            } catch (e) {
+              errorHandler(e, res);
+            }
+          });
+          return;
+        }
+
+        if (method === 'PUT' && url?.startsWith(ROUTES.users + '/')) {
+          const userId = getUserIdFromURL(url);
+          if (!userId) {
+            throw new UserIdValidationError();
+          }
+          const body = [] as Uint8Array[];
+          req.on('data', (chunk) => {
+            body.push(chunk);
+          });
+          req.on('end', async () => {
+            try {
+              const user = JSON.parse(Buffer.concat(body).toString());
+              const updatedUser = await usersRepository.updateUser(
+                userId,
+                user,
+              );
+              sendJson(res, STATUS_CODES.OK, updatedUser);
+              return;
+            } catch (e) {
+              errorHandler(e, res);
+            }
+          });
+          return;
+        }
+
+        if (method === 'DELETE' && url?.startsWith(ROUTES.users + '/')) {
+          const userId = getUserIdFromURL(url);
+          if (!userId) {
+            throw new UserIdValidationError();
+          }
+          await usersRepository.deleteUser(userId);
+          sendJson(res, STATUS_CODES.NO_CONTENT);
+          return;
+        }
+
+        throw new RouteNotFoundError();
       } catch (e) {
         errorHandler(e, res);
       }
@@ -121,13 +113,15 @@ const errorHandler = (e: unknown, response: http.ServerResponse) => {
     e instanceof UserIdValidationError ||
     e instanceof UserBodyValidationError
   ) {
-    sendJson(response, 400, { message: e.message });
+    sendJson(response, STATUS_CODES.BAD_REQUEST, { message: e.message });
     return;
   }
   if (e instanceof UserNotFoundError || e instanceof RouteNotFoundError) {
-    sendJson(response, 404, { message: e.message });
+    sendJson(response, STATUS_CODES.NOT_FOUND, { message: e.message });
     return;
   }
 
-  sendJson(response, 500, { message: ERROR_MAP.unexpectedServerError });
+  sendJson(response, STATUS_CODES.SERVER_ERROR, {
+    message: ERROR_MAP.unexpectedServerError,
+  });
 };
