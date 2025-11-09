@@ -31,7 +31,8 @@ export const server = (
             if (!userId) {
               throw new UserIdValidationError();
             }
-            sendJson(res, 200, usersRepository.getUserById(userId));
+            const user = await usersRepository.getUserById(userId);
+            sendJson(res, 200, user);
             return;
           } else {
             throw new RouteNotFoundError();
@@ -89,7 +90,7 @@ export const server = (
             if (!userId) {
               throw new UserIdValidationError();
             }
-            usersRepository.deleteUser(userId);
+            await usersRepository.deleteUser(userId);
             sendJson(res, 204);
             return;
           } else {
