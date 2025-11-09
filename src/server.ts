@@ -3,7 +3,6 @@ import { generateId, validateId } from './utils/uuid';
 import { sendJson } from './utils/sendJson';
 import { parseURL } from './utils/parseURL';
 import { User } from './db/users';
-import { PORT } from './consts/consts';
 
 
 export const server = (hostname: string, port: number, users: User[]) => {
@@ -19,8 +18,6 @@ export const server = (hostname: string, port: number, users: User[]) => {
                 if (url === "/users") {
                     sendJson(res, 200, users)
 
-                    console.log(PORT)
-                    console.log("Наш порт", process.env.PORT)
                     return;
                 }
 
