@@ -109,6 +109,8 @@ export const server = (
   httpServer.listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}/`);
   });
+
+  return httpServer;
 };
 
 const getUserIdFromURL = (url: string) => url.split('/').at(2);
