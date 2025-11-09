@@ -5,7 +5,7 @@ export const ERROR_MAP = {
   invalidUserBody:
     'User should have all requered fields (name, age and hobbies) with valid types',
   userIsNotFound: 'User is not found',
-  pathIsNotFound: 'Path is not found',
+  pathIsNotFound: 'Route not found',
   unexpectedServerError: 'Unexpected server error. Please try again',
 };
 

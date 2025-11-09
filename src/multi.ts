@@ -35,7 +35,7 @@ type IpcRequest = {
   };
 };
 
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT);
 
 if (cluster.isPrimary) {
   const cpuCount = availableParallelism();
