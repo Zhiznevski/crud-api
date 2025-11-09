@@ -5,7 +5,7 @@ import process from 'node:process';
 
 import { HOST_NAME } from './consts/consts';
 import { server } from './server';
-import { users } from './db/users';
+import { users } from './userRepository/users';
 
 const numCPUs = availableParallelism() - 1;
 

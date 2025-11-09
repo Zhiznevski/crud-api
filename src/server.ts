@@ -2,7 +2,7 @@ import http from 'node:http';
 import { generateId, validateId } from './utils/uuid';
 import { sendJson } from './utils/sendJson';
 import { parseURL } from './utils/parseURL';
-import { User } from './db/users';
+import { User } from './userRepository/users';
 
 export const server = (hostname: string, port: number, users: User[]) => {
   http
