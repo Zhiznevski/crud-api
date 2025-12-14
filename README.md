@@ -11,7 +11,7 @@ Node.js CRUD API.
 
 ## Requirements
 
-- Node.js 24.x.x version (24.10.0 or upper)
+- Node.js 24.x.x version (24.14.0 or upper)
 - npm
 
 ---
