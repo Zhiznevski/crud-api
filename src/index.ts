@@ -1,17 +1,19 @@
-import http from 'node:http';
-import 'dotenv/config'
+import 'dotenv/config';
+import { server } from './server';
+import { HOST_NAME } from './consts/consts';
+import {
+  IUsersRepository,
+  usersRepository,
+} from './userRepository/usersRepository';
 
+const PORT = Number(process.env.PORT);
 
-const hostname = '127.0.0.1';
-const port = Number(process.env.PORT);
+export const app = (
+  hostname: string,
+  port: number,
+  usersRepository: IUsersRepository,
+) => {
+  server(hostname, port, usersRepository);
+};
 
-
-const server = http.createServer((request) => {
-
-    console.log(request)
-})
-
-server.listen(port, hostname, () => {
-    console.log()
-    console.log(`Server running at http://${hostname}:${port}/`);
-})
+app(HOST_NAME, PORT, usersRepository);
